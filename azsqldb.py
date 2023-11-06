@@ -43,5 +43,51 @@ def connect_to_azure_sql():
             print("An error occurred while connecting to the database:", e)
         return None
 
-cursor = connect_to_azure_sql()
+
+def authenticate_user(sqlcursor, username, password):
+    # Check if the username exists and retrieve the password, role, and user_id
+    sqlcursor.execute("SELECT password, role, user_id FROM master.STUDYBUDDY.Users WHERE username = ?", (username,))
+    result = sqlcursor.fetchone()
+
+    if not result:
+        # Username doesn't exist
+        return False, "No user was found with that username.", None, None
+
+    stored_password, role, user_id = result
+    
+    if stored_password != password:
+        # Passwords don't match
+        return False, "Incorrect password for the provided username.", None, None
+    
+    # If we reached this point, the user is authenticated
+    return True, "Authenticated successfully.", role, user_id
+
+def create_new_user(sqlcursor, username, password, email, school, role):
+    # Check if the username is already in use
+    sqlcursor.execute("SELECT username FROM master.STUDYBUDDY.Users WHERE username = ?", (username,))
+    user_result = sqlcursor.fetchone()
+
+    if user_result:
+        return "Username is already in use. Please choose a different username."
+
+    # Check if the email is already in use
+    sqlcursor.execute("SELECT email FROM master.STUDYBUDDY.Users WHERE email = ?", (email,))
+    email_result = sqlcursor.fetchone()
+
+    if email_result:
+        # Email is already in use
+        return "Email is already in use. Please use a different email address."
+
+    # Insert a new user into the table
+    # Assuming user_id is auto-incremented, so we don't need to provide it
+    insert_query = '''
+    INSERT INTO master.STUDYBUDDY.Users (username, password, email, school, role)
+    VALUES (?, ?, ?, ?, ?)
+    '''
+    sqlcursor.execute(insert_query, (username, password, email, school, role))
+    
+    # Commit the transaction
+    sqlcursor.connection.commit()
+
+    return "User successfully created!"
 

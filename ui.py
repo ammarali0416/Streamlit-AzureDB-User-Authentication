@@ -1,31 +1,71 @@
+# **************************************************************************** #
+#                                                                              #
+#                                                         :::      ::::::::    #
+#    ui.py                                              :+:      :+:    :+:    #
+#                                                     +:+ +:+         +:+      #
+#    By: ammar syed ali <https://www.linkedin.co    +#+  +:+       +#+         #
+#                                                 +#+#+#+#+#+   +#+            #
+#    Created: 2023/11/05 20:20:07 by ammar syed        #+#    #+#              #
+#    Updated: 2023/11/05 20:20:07 by ammar syed       ###   ########.fr        #
+#                                                                              #
+# **************************************************************************** #
+import azsqldb
 import streamlit as st
 
-# Create a dictionary to store user information (username and password)
-if "user_data" not in st.session_state:
-    st.session_state.user_data = {}
+# Create a dictionary to store the user id
+if "user_id" not in st.session_state:
+    st.session_state.user_id = None
 
-# Define a function for user signup
+# Create a cursor object
+if "sqlcursor" not in st.session_state:
+    st.session_state.sqlcursor = azsqldb.connect_to_azure_sql()
+
 def signup():
     st.subheader("Sign Up")
+    
+    # User details input
     new_username = st.text_input("Create a new username")
     new_password = st.text_input("Create a password", type="password")
+    email = st.text_input("Enter your email")
+    school = st.text_input("Enter your school")
+    
+    # Role selection using radio buttons
+    role = st.radio("Select your role", ["student", "teacher"])
+    
     if st.button("Sign Up"):
-        if new_username and new_password:
-            st.session_state.user_data[new_username] = new_password
-            st.success("You have successfully signed up!")
+        if new_username and new_password and email and school:
+            message = azsqldb.create_new_user(st.session_state.sqlcursor, new_username, new_password, email, school, role)
+            st.success(message)
         else:
-            st.warning("Please enter both a username and a password.")
+            st.warning("Please fill in all the details.")
 
-# Define a function for user login
 def login():
     st.subheader("Log In")
     username = st.text_input("Username")
     password = st.text_input("Password", type="password")
+    
     if st.button("Log In"):
-        if username in st.session_state.user_data and st.session_state.user_data[username] == password:
+        is_authenticated, message, role, user_id = azsqldb.authenticate_user(st.session_state.sqlcursor, username, password)
+        
+        if is_authenticated:
+            st.session_state.user_id = user_id   # Store the user_id in session_state
             st.success(f"Welcome, {username}!")
+            
+            # Navigate to the respective page based on role
+            if role == "teacher":
+                teacher_page()
+            elif role == "student":
+                student_page()
         else:
-            st.error("Incorrect username or password. Please try again.")
+            st.error(message)
+
+def teacher_page():
+    st.title("Teacher Dashboard")
+    # Add content for the teacher page
+
+def student_page():
+    st.title("Student Dashboard")
+    # Add content for the student page
 
 # Main application
 st.title("Study Buddy")
