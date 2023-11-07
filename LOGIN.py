@@ -12,9 +12,13 @@
 import azsqldb
 import streamlit as st
 
-# Create a dictionary to store the user id
+# Store the user id
 if "user_id" not in st.session_state:
     st.session_state.user_id = None
+
+# Store the user role
+if "role" not in st.session_state:
+    st.session_state.role = None
 
 # Create a cursor object
 if "sqlcursor" not in st.session_state:
@@ -49,26 +53,15 @@ def login():
         
         if is_authenticated:
             st.session_state.user_id = user_id   # Store the user_id in session_state
-            st.success(f"Welcome, {username}!")
+            st.session_state.role = role # Store the role to determine what gets shown on the other pages
+            st.success(f"Welcome, {username}! \n Your dashboard is now available!")
             
-            # Navigate to the respective page based on role
-            if role == "teacher":
-                teacher_page()
-            elif role == "student":
-                student_page()
         else:
             st.error(message)
 
-def teacher_page():
-    st.title("Teacher Dashboard")
-    # Add content for the teacher page
-
-def student_page():
-    st.title("Student Dashboard")
-    # Add content for the student page
-
 # Main application
-st.title("Study Buddy")
+st.set_page_config(page_title="Study Buddy",
+                   initial_sidebar_state="auto")
 
 # Create a dropdown to select action (Sign Up or Log In)
 selected_action = st.selectbox("Select an action:", ["Sign Up", "Log In"])
